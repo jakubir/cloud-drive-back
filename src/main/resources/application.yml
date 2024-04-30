@@ -1,8 +1,0 @@
-spring:
-  application:
-    name: cloudDrive
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          public-key-location: classpath:app.pub
