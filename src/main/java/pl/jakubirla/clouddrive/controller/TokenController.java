@@ -20,6 +20,6 @@ public class TokenController {
     public String token(Authentication authentication) throws NullPointerException {
         String token = tokenService.generateToken(authentication);
 
-        return token;
+        return String.format("\"%s\"", token);
     }
 }
