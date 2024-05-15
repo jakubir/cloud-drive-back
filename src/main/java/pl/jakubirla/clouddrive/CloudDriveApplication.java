@@ -7,9 +7,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import pl.jakubirla.clouddrive.config.RsaKeyProperties;
+import pl.jakubirla.clouddrive.config.StorageProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(RsaKeyProperties.class)
+@EnableConfigurationProperties({RsaKeyProperties.class, StorageProperties.class})
 public class CloudDriveApplication {
 
     public static void main(String[] args) {

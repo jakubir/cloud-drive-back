@@ -1,10 +1,8 @@
-package pl.jakubirla.clouddrive.controller;
+package pl.jakubirla.clouddrive.token;
 
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pl.jakubirla.clouddrive.service.TokenService;
 
 
 @RestController

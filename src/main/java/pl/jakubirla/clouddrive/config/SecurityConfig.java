@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 
 @EnableWebSecurity
@@ -63,7 +64,7 @@ public class SecurityConfig {
                         .authorities("ADMIN")
                         .build(),
                 User.withUsername("user@gmail.com")
-                        .password("{noop}password")
+                        .password("{bcrypt}$2a$10$lWo6vslcKUgPrrbK2ZkdquetZnoS6vzrgu0yDuf6U986HPA7X45DG")
                         .authorities("USER")
                         .build()
         );

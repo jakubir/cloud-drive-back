@@ -1,4 +1,4 @@
-package pl.jakubirla.clouddrive.service;
+package pl.jakubirla.clouddrive.token;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
