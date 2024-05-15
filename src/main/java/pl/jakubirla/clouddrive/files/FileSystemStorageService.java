@@ -50,6 +50,17 @@ public class FileSystemStorageService {
         return loadAll(Path.of(this.rootLocation + "/" + userFolder));
     }
 
+    private long directorySize(Path path) {
+        try {
+            return Files.walk(path)
+                    .filter(p -> p.toFile().isFile())
+                    .mapToLong(p -> p.toFile().length())
+                    .sum();
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+
     private Stream<FileToRead> loadAll(Path location) {
         try {
             return Files.walk(location, 1)
@@ -57,10 +68,10 @@ public class FileSystemStorageService {
                     .map(path ->
                         new FileToRead(
                             path.getFileName().toString(),
-                                path.toFile().isDirectory() ? "directory" : "file",
-                                path.toFile().lastModified(),
-                                path.toFile().length(),
-                                path.toFile().isDirectory() ? this.loadAll(path).toList() : null
+                            path.toFile().isDirectory() ? "directory" : "file",
+                            path.toFile().lastModified(),
+                            path.toFile().isDirectory() ? directorySize(path) : path.toFile().length(),
+                            path.toFile().isDirectory() ? this.loadAll(path).toList() : null
                         )
                     );
         }
@@ -78,6 +89,15 @@ public class FileSystemStorageService {
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to create directory: " + directoryPath);
+        }
+    }
+
+    public void init() {
+        try {
+            Files.createDirectories(rootLocation);
+        }
+        catch (IOException e) {
+            throw new RuntimeException("Could not initialize storage");
         }
     }
 }
