@@ -1,23 +1,23 @@
 package pl.jakubirla.clouddrive.files;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import pl.jakubirla.clouddrive.config.StorageProperties;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 @Service
 public class FileSystemStorageService {
     private Path rootLocation;
 
-    @Autowired
     public FileSystemStorageService(StorageProperties properties) {
         if (properties.location().trim().isEmpty())
             throw new RuntimeException("File location must be provided");
@@ -25,29 +25,28 @@ public class FileSystemStorageService {
         this.rootLocation = Path.of(properties.location());
     }
 
-    public void store(MultipartFile file, String userFolder) {
-        Path userRootLocation = Path.of(this.rootLocation + "/" + userFolder);
+    public void store(MultipartFile files[], String storageDirectory) {
+        Path fullStoragePath = Path.of(this.rootLocation + "\\" + storageDirectory);
 
-        try {
-            if (file.isEmpty()) throw new RuntimeException("Failed to store empty file.");
+        for (MultipartFile file : files) {
+            String[] pathParts = file.getOriginalFilename().split("/");
 
-            Path destinationFile = userRootLocation.resolve(Paths.get(file.getOriginalFilename())).normalize().toAbsolutePath();
+            if (pathParts.length > 1)
+                createDirectory(storageDirectory + "\\" + String.join("\\", Arrays.copyOf(pathParts, pathParts.length - 1)));
 
-            if (!destinationFile.getParent().equals(userRootLocation.toAbsolutePath())) {
-                // This is a security check
-                throw new RuntimeException("Cannot store file outside current directory.");
-            }
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                if (file.isEmpty())
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File cannot be empty");
+
+                Path destinationFile = Path.of(fullStoragePath + "\\" + file.getOriginalFilename());
+
+                try (InputStream inputStream = file.getInputStream()) {
+                    Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store file: ");
             }
         }
-        catch (IOException e) {
-            throw new RuntimeException("Failed to store file.");
-        }
-    }
-
-    public Stream<FileToRead> loadAll(String userFolder) {
-        return loadAll(Path.of(this.rootLocation + "/" + userFolder));
     }
 
     private long directorySize(Path path) {
@@ -59,6 +58,10 @@ public class FileSystemStorageService {
         } catch (IOException e) {
             return 0;
         }
+    }
+
+    public Stream<FileToRead> loadAll(String userFolder) {
+        return loadAll(Path.of(this.rootLocation + "/" + userFolder));
     }
 
     private Stream<FileToRead> loadAll(Path location) {
@@ -76,28 +79,19 @@ public class FileSystemStorageService {
                     );
         }
         catch (IOException e) {
-            throw new RuntimeException("Failed to read stored files", e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to read stored files");
         }
     }
 
     public void createDirectory(String directoryPath) {
         try {
-            Path path = Path.of(this.rootLocation + "/" + directoryPath);
+            Path path = Path.of(this.rootLocation + "\\" + directoryPath);
 
             if (!Files.exists(path))
                 Files.createDirectories(path);
 
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create directory: " + directoryPath);
-        }
-    }
-
-    public void init() {
-        try {
-            Files.createDirectories(rootLocation);
-        }
-        catch (IOException e) {
-            throw new RuntimeException("Could not initialize storage");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create directory");
         }
     }
 }
