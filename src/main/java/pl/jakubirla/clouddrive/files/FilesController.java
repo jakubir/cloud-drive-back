@@ -7,9 +7,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.PostMapping;
+
 
 @RestController
-@RequestMapping("/files")
 public class FilesController {
 
     private final FileSystemStorageService storageService;
@@ -18,7 +19,7 @@ public class FilesController {
         this.storageService = storageService;
     }
 
-    @GetMapping("/list")
+    @GetMapping("/files")
     public String fileList() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String rootChildren = null;
@@ -39,12 +40,30 @@ public class FilesController {
                 "]}";
     }
 
-    @PostMapping("")
+    @PostMapping("/files")
     public void fileUpload(@RequestParam("files") MultipartFile files[], @RequestParam("path") String path) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userFolder = Base64URL.encode(authentication.getName()).toString();
         String storageDirectory = userFolder + "/" + path;
 
         storageService.store(files, storageDirectory);
+    }
+
+    @PostMapping("/files/new-folder")
+    public void createNewDirectory(@RequestParam("path") String path) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userFolder = Base64URL.encode(authentication.getName()).toString();
+        String storageDirectory = userFolder + "/" + path;
+        
+        storageService.createDirectory("/" + storageDirectory);
+    }
+    
+    @DeleteMapping("/files")
+    public void removeFile(@RequestParam("path") String path) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userFolder = Base64URL.encode(authentication.getName()).toString();
+        String storageDirectory = userFolder + "/" + path;
+
+        storageService.removeFile("/" + storageDirectory);
     }
 }

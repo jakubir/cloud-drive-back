@@ -31,8 +31,12 @@ public class FileSystemStorageService {
         for (MultipartFile file : files) {
             String[] pathParts = file.getOriginalFilename().split("/");
 
-            if (pathParts.length > 1)
-                createDirectory(storageDirectory + "\\" + String.join("\\", Arrays.copyOf(pathParts, pathParts.length - 1)));
+            if (pathParts.length > 1){
+                String directoryPath = storageDirectory + "\\" + String.join("\\", Arrays.copyOf(pathParts, pathParts.length - 1));
+                
+                if (!isDirectoryNameTaken(directoryPath)) 
+                    createDirectory(directoryPath);
+            }
 
             try {
                 if (file.isEmpty())
@@ -61,7 +65,7 @@ public class FileSystemStorageService {
     }
 
     public Stream<FileToRead> loadAll(String userFolder) {
-        return loadAll(Path.of(this.rootLocation + "/" + userFolder));
+        return loadAll(Path.of(this.rootLocation + "\\" + userFolder));
     }
 
     private Stream<FileToRead> loadAll(Path location) {
@@ -89,9 +93,31 @@ public class FileSystemStorageService {
 
             if (!Files.exists(path))
                 Files.createDirectories(path);
+            else
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Directory already exists");
 
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create directory");
+        }
+    }
+
+    private boolean isDirectoryNameTaken(String directoryPath) {
+        Path path = Path.of(this.rootLocation + "\\" + directoryPath);
+
+        return Files.exists(path);
+    }
+
+    public void removeFile(String filePath) {
+        try {
+            Path path = Path.of(this.rootLocation + "\\" + filePath);
+
+            if (Files.exists(path))
+                Files.delete(path);
+            else
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File already removed");
+
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to remove file");
         }
     }
 }
