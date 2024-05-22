@@ -1,17 +1,22 @@
 package pl.jakubirla.clouddrive.files;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
 import pl.jakubirla.clouddrive.config.StorageProperties;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.stream.Stream;
 
 @Service
@@ -31,7 +36,7 @@ public class FileSystemStorageService {
         for (MultipartFile file : files) {
             String[] pathParts = file.getOriginalFilename().split("/");
 
-            if (pathParts.length > 1){
+            if (pathParts.length > 1) {
                 String directoryPath = storageDirectory + "\\" + String.join("\\", Arrays.copyOf(pathParts, pathParts.length - 1));
                 
                 if (!isDirectoryNameTaken(directoryPath)) 
@@ -111,13 +116,28 @@ public class FileSystemStorageService {
         try {
             Path path = Path.of(this.rootLocation + "\\" + filePath);
 
-            if (Files.exists(path))
-                Files.delete(path);
-            else
+            if (!Files.exists(path))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File already removed");
+
+            Files.walk(path)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
 
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to remove file");
         }
     }
+
+    public void moveElement(String elementToMove, String targetElement) {
+        Path elementToMovePath = Path.of(this.rootLocation + "\\" + elementToMove);
+        Path targetPath = Path.of(this.rootLocation + "\\" + targetElement);
+
+        try {
+            Files.move(elementToMovePath, targetPath);
+        } catch (IOException e) {
+            throw new RuntimeException("can't_move");
+        }
+    }
+
 }
