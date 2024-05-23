@@ -1,7 +1,5 @@
 package pl.jakubirla.clouddrive.files;
 
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,15 +7,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import pl.jakubirla.clouddrive.config.StorageProperties;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class FileSystemStorageService {
@@ -67,6 +65,11 @@ public class FileSystemStorageService {
         } catch (IOException e) {
             return 0;
         }
+    }
+
+    public boolean isDirectory(String path) {
+
+        return Path.of(this.rootLocation + "\\" + path).toFile().isDirectory();
     }
 
     public Stream<FileToRead> loadAll(String userFolder) {
@@ -140,4 +143,47 @@ public class FileSystemStorageService {
         }
     }
 
+    public void downloadElement(String elementPath, OutputStream output) {
+        try {
+            Path path = Path.of(this.rootLocation + "\\" + elementPath);
+
+            if (path.toFile().isFile()) {
+                Files.copy(path, output);
+                return;
+            }
+
+            ZipOutputStream zipOutput = new ZipOutputStream(output);
+
+            zipResource(path.toFile(), path.toFile().getName(), zipOutput);
+            zipOutput.close();
+
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to download resource");
+        }
+    }
+
+    private void zipResource(File file, String fileName, ZipOutputStream zipOutput) throws IOException {
+        if (file.isDirectory()) {
+            String name = fileName + (fileName.endsWith("/") ? "" : "/");
+
+            zipOutput.putNextEntry(new ZipEntry(name));
+            zipOutput.closeEntry();
+
+            for (File child : file.listFiles())
+                zipResource(child, fileName + "/" + child.getName(), zipOutput);
+
+            return;
+        }
+
+        FileInputStream fileInput = new FileInputStream(file);
+        byte[] bytes = new byte[1024];
+        int length;
+
+        zipOutput.putNextEntry(new ZipEntry(fileName));
+
+        while ((length = fileInput.read(bytes)) >= 0)
+            zipOutput.write(bytes, 0, length);
+
+        fileInput.close();
+    }
 }

@@ -19,7 +19,7 @@ public class WebConfig {
                         .allowedMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders(HttpHeaders.ACCEPT, HttpHeaders.CONTENT_TYPE, HttpHeaders.AUTHORIZATION)
                         .allowCredentials(true)
-                ;
+                        .exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);
             }
         };
     }
