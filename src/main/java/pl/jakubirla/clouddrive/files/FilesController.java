@@ -2,11 +2,8 @@ package pl.jakubirla.clouddrive.files;
 
 import com.nimbusds.jose.util.Base64URL;
 
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -55,15 +52,19 @@ public class FilesController {
         String path = Base64URL.from(encodedPath).decodeToString();
         String storageDirectory = userFolder + "/" + path;
 
-//        Resource resource = storageService.downloadElement(storageDirectory);
-        String fileName = path.split("/")[path.split("/").length - 1];
-        fileName = storageService.isDirectory(storageDirectory) ? fileName + ".zip" : fileName;
+        try {
+            String fileName = path.split("/")[path.split("/").length - 1];
+            fileName = storageService.isDirectory(storageDirectory) ? fileName + ".zip" : fileName;
+            fileName = Base64URL.encode(fileName).toString();
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
-                .body(output -> {
-                    storageService.downloadElement(storageDirectory, output);
-                });
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                    .body(output -> {
+                        storageService.downloadElement(storageDirectory, output);
+                    });
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to download the file");
+        }
     }
 
     @PostMapping("/files")
@@ -101,6 +102,21 @@ public class FilesController {
         String[] pathParts = path.split("/");
         pathParts[pathParts.length - 1] = newName;
         String target = userFolder + "/" + String.join("/", pathParts);
+        String elementToChange = userFolder + "/" + path;
+
+        try {
+            storageService.moveElement(elementToChange, target);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to move the element");
+        }
+    }
+
+    @PatchMapping("files/move")
+    public void moveResource(@RequestParam("path") String path, @RequestParam("newPath") String newPath) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userFolder = Base64URL.encode(authentication.getName()).toString();
+
+        String target = userFolder + "/" + newPath;
         String elementToChange = userFolder + "/" + path;
 
         try {

@@ -143,23 +143,18 @@ public class FileSystemStorageService {
         }
     }
 
-    public void downloadElement(String elementPath, OutputStream output) {
-        try {
-            Path path = Path.of(this.rootLocation + "\\" + elementPath);
+    public void downloadElement(String elementPath, OutputStream output) throws IOException {
+        Path path = Path.of(this.rootLocation + "\\" + elementPath);
 
-            if (path.toFile().isFile()) {
-                Files.copy(path, output);
-                return;
-            }
-
-            ZipOutputStream zipOutput = new ZipOutputStream(output);
-
-            zipResource(path.toFile(), path.toFile().getName(), zipOutput);
-            zipOutput.close();
-
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to download resource");
+        if (path.toFile().isFile()) {
+            Files.copy(path, output);
+            return;
         }
+
+        ZipOutputStream zipOutput = new ZipOutputStream(output);
+
+        zipResource(path.toFile(), path.toFile().getName(), zipOutput);
+        zipOutput.close();
     }
 
     private void zipResource(File file, String fileName, ZipOutputStream zipOutput) throws IOException {
